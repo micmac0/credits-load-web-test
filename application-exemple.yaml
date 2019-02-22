@@ -1,0 +1,31 @@
+server:
+  port: 8383
+  address: 127.0.0.1
+  sessionTimeout: 30
+  contextPath: /
+
+nodes-wallets-definition:
+  nodes:
+    - address: 
+      port: 9090
+      from-public-key: 
+      from-private-key: 
+      to-public-key: 
+    - address: 
+      port: 9090
+      from-public-key: 
+      from-private-key: 
+      to-public-key: 
+    - address: 161.156.96.21
+      port: 8989
+      from-public-key: 
+      from-private-key: 
+      to-public-key: 
+
+debug: false
+trace: false
+logging.file: logs/test-credits.log
+
+
+
+
