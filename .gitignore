@@ -4,5 +4,6 @@
 /bin/
 /.gradle/
 /build/
+/logs/
 .settings
 application.yaml

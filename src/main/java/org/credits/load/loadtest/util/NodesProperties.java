@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "nodes-wallets-definition")
 public class NodesProperties {
 	private List<Node> nodes = new ArrayList<>();
+	private Integer nbTrxThread;
 
 	public List<Node> getNodes() {
 		return nodes;
@@ -17,6 +18,14 @@ public class NodesProperties {
 
 	public void setNodes(List<Node> nodes) {
 		this.nodes = nodes;
+	}
+
+	public Integer getNbTrxThread() {
+		return nbTrxThread;
+	}
+
+	public void setNbTrxThread(Integer nbTrxThread) {
+		this.nbTrxThread = nbTrxThread;
 	}
 
 	public static class Node {

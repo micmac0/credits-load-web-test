@@ -41,6 +41,7 @@ public class DoSendCsThread implements Runnable {
 
 	private Integer nodeConfigNumber;
 	private Integer nbSend;
+	private Integer nbTrxResyncTrxId = 50;
 
 	@Autowired
 	NodesProperties nodesProperties;
@@ -72,19 +73,19 @@ public class DoSendCsThread implements Runnable {
 			API.Client client = clientFactory.getClient(protocol);
 			transport.open();
 			if (transport.isOpen()) {
-				WalletBalanceGetResult balanceGet = client.WalletBalanceGet(ByteBuffer.wrap(sourceByte));
-				WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
-				if (transId != null)
-					id = transId.lastTransactionInnerId + 1;
-				else
-					id = 0L;
-				LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
 
-				for (int i = 0; i < (nbSend / 1000) + 1; i++) {
-					if (nbSend / 1000 > 0)
-						maxCount = 1000;
+				for (int i = 0; i < (nbSend / nbTrxResyncTrxId) + 1; i++) {
+					WalletBalanceGetResult balanceGet = client.WalletBalanceGet(ByteBuffer.wrap(sourceByte));
+					WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
+					if (transId != null)
+						id = transId.lastTransactionInnerId + 1;
 					else
-						maxCount = nbSend % 1000;
+						id = 0L;
+					LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
+					if (nbSend / nbTrxResyncTrxId > 0)
+						maxCount = nbTrxResyncTrxId;
+					else
+						maxCount = nbSend % nbTrxResyncTrxId;
 					List<Transaction> transactionToSend = new ArrayList<>();
 					for (int j = 0; j < maxCount; j++) {
 

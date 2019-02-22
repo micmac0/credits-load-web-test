@@ -4,7 +4,10 @@ server:
   sessionTimeout: 30
   contextPath: /
 
+
+
 nodes-wallets-definition:
+  nb-trx-thread: 80000
   nodes:
     - address: 
       port: 9090

@@ -33,7 +33,7 @@ public class SendCreditsService {
 					for (int counter = 0; counter < nodesProperties.getNodes().size(); counter++) {
 						DoSendCsThread doSendCsThread = applicationContext.getBean(DoSendCsThread.class);
 						doSendCsThread.setNodeConfigNumber(counter);
-						doSendCsThread.setNbSend(21232);
+						doSendCsThread.setNbSend(nodesProperties.getNbTrxThread());
 						taskExecutor.execute(doSendCsThread);
 
 					}
