@@ -71,14 +71,13 @@ public class DoSendCsThread implements Runnable {
 			TProtocol protocol = new TBinaryProtocol(transport);
 			API.Client client = clientFactory.getClient(protocol);
 			transport.open();
-			if (transport.isOpen()) {
-				Thread.sleep(1000);
 
-				WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
-				if (transId != null)
-					id = transId.lastTransactionInnerId + 1;
-				else
-					id = 0L;
+			WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
+			if (transId != null)
+				id = transId.lastTransactionInnerId + 1;
+			else
+				id = 0L;
+			if (transport.isOpen()) {
 
 				for (int i = 0; i < (nbSend / nbTrxResyncTrxId) + 1; i++) {
 
@@ -120,6 +119,8 @@ public class DoSendCsThread implements Runnable {
 
 						// TransactionFlowResult res2 = client.TransactionFlow(transaction);
 						transactionToSend.add(transaction);
+						Integer waitTime = nodesProperties.getNodes().get(nodeConfigNumber).getTimeTrxWaitMs();
+						Thread.currentThread().sleep(waitTime);
 
 						id++;
 					}

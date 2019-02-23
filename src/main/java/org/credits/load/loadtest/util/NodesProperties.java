@@ -34,6 +34,7 @@ public class NodesProperties {
 		private String fromPublicKey;
 		private String fromPrivateKey;
 		private String toPublicKey;
+		private Integer timeTrxWaitMs;
 
 		public String getAddress() {
 			return address;
@@ -73,6 +74,14 @@ public class NodesProperties {
 
 		public void setToPublicKey(String toPublicKey) {
 			this.toPublicKey = toPublicKey;
+		}
+
+		public Integer getTimeTrxWaitMs() {
+			return timeTrxWaitMs;
+		}
+
+		public void setTimeTrxWaitMs(Integer timeTrxWaitMs) {
+			this.timeTrxWaitMs = timeTrxWaitMs;
 		}
 
 	}
