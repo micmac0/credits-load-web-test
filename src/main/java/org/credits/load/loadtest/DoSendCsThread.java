@@ -25,7 +25,6 @@ import com.credits.client.node.thrift.generated.Amount;
 import com.credits.client.node.thrift.generated.AmountCommission;
 import com.credits.client.node.thrift.generated.Transaction;
 import com.credits.client.node.thrift.generated.TransactionType;
-import com.credits.client.node.thrift.generated.WalletBalanceGetResult;
 import com.credits.client.node.thrift.generated.WalletTransactionsCountGetResult;
 import com.credits.common.exception.CreditsCommonException;
 import com.credits.common.utils.Converter;
@@ -41,7 +40,7 @@ public class DoSendCsThread implements Runnable {
 
 	private Integer nodeConfigNumber;
 	private Integer nbSend;
-	private Integer nbTrxResyncTrxId = 50;
+	private Integer nbTrxResyncTrxId = 1000;
 
 	@Autowired
 	NodesProperties nodesProperties;
@@ -73,14 +72,16 @@ public class DoSendCsThread implements Runnable {
 			API.Client client = clientFactory.getClient(protocol);
 			transport.open();
 			if (transport.isOpen()) {
+				Thread.sleep(1000);
+
+				WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
+				if (transId != null)
+					id = transId.lastTransactionInnerId + 1;
+				else
+					id = 0L;
 
 				for (int i = 0; i < (nbSend / nbTrxResyncTrxId) + 1; i++) {
-					WalletBalanceGetResult balanceGet = client.WalletBalanceGet(ByteBuffer.wrap(sourceByte));
-					WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
-					if (transId != null)
-						id = transId.lastTransactionInnerId + 1;
-					else
-						id = 0L;
+
 					LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
 					if (nbSend / nbTrxResyncTrxId > 0)
 						maxCount = nbTrxResyncTrxId;
