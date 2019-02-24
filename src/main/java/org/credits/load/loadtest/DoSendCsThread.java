@@ -28,6 +28,7 @@ import com.credits.client.node.thrift.generated.TransactionType;
 import com.credits.client.node.thrift.generated.WalletTransactionsCountGetResult;
 import com.credits.common.exception.CreditsCommonException;
 import com.credits.common.utils.Converter;
+import com.credits.common.utils.Fee;
 import com.credits.common.utils.TransactionStruct;
 import com.credits.crypto.Ed25519;
 import com.credits.leveldb.client.exception.LevelDbClientException;
@@ -64,6 +65,8 @@ public class DoSendCsThread implements Runnable {
 		byte[] sourceByte = Converter.decodeFromBASE58(source);
 		byte[] targetByte = Converter.decodeFromBASE58(target);
 
+		Fee maxFee = new Fee(new BigDecimal("0.1"));
+
 		try {
 			TTransport transport = new TSocket(nodesProperties.getNodes().get(nodeConfigNumber).getAddress(),
 					nodesProperties.getNodes().get(nodeConfigNumber).getPort());
@@ -94,7 +97,7 @@ public class DoSendCsThread implements Runnable {
 						Amount balance = Converter.bigDecimalToAmount(new BigDecimal("0.1"));
 						byte currency = 1;
 
-						AmountCommission fee = new AmountCommission((short) 18431);
+						AmountCommission fee = new AmountCommission(maxFee.getFee());
 						long timeCreation = new Date().getTime();
 						TransactionType type = null;// TransactionType.TT_Normal;
 						Transaction transaction = new Transaction();
@@ -109,7 +112,7 @@ public class DoSendCsThread implements Runnable {
 
 						transaction.setSource(sourceByte);
 						transaction.setTarget(targetByte);
-						TransactionStruct tStruct = new TransactionStruct(id, source, target, amountDecimal, (short) 18431, currency, null);
+						TransactionStruct tStruct = new TransactionStruct(id, source, target, amountDecimal, maxFee.getFee(), currency, null);
 
 						byte[] privateKeyByteArr1;
 						privateKeyByteArr1 = Converter.decodeFromBASE58(pk);
