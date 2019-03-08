@@ -10,6 +10,7 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.credits.load.loadtest.rest.beans.BalanceRest;
+import org.credits.load.loadtest.rest.beans.WalletInfoRest;
 import org.credits.load.loadtest.util.NodesProperties;
 import org.credits.load.loadtest.util.NodesProperties.Node;
 import org.slf4j.Logger;
@@ -17,6 +18,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,12 +28,14 @@ import com.credits.client.node.thrift.generated.API;
 import com.credits.client.node.thrift.generated.API.Client;
 import com.credits.client.node.thrift.generated.API.Client.Factory;
 import com.credits.client.node.thrift.generated.WalletBalanceGetResult;
+import com.credits.client.node.thrift.generated.WalletDataGetResult;
 import com.credits.common.utils.Converter;
 
 @RestController
-@RequestMapping("/test")
-public class TestCreditsRest {
-	public static final Logger LOGGER = LoggerFactory.getLogger(TestCreditsRest.class);
+@CrossOrigin
+@RequestMapping("/wallet")
+public class WalletsRest {
+	public static final Logger LOGGER = LoggerFactory.getLogger(WalletsRest.class);
 
 	@Autowired
 	private NodesProperties nodesProperties;
@@ -64,6 +69,30 @@ public class TestCreditsRest {
 		}
 		return new ResponseEntity<List<BalanceRest>>(balancesList, HttpStatus.OK);
 
+	}
+
+	@RequestMapping(value = "/{publicKey}", method = RequestMethod.GET)
+	public ResponseEntity<WalletInfoRest> getWalletInfo(@PathVariable("publicKey") String publicKey) {
+		WalletInfoRest walletInfo = new WalletInfoRest();
+		try {
+
+			TTransport transport = new TSocket(nodesProperties.getNodes().get(0).getAddress(),
+					nodesProperties.getNodes().get(0).getPort());
+			Factory clientFactory = new Client.Factory();
+			TProtocol protocol = new TBinaryProtocol(transport);
+			API.Client client = clientFactory.getClient(protocol);
+			transport.open();
+			if (transport.isOpen()) {
+				WalletDataGetResult walletDataGet = client.WalletDataGet(ByteBuffer.wrap(Converter.decodeFromBASE58(publicKey)));
+				walletInfo.setLastTrxId(walletDataGet.walletData.lastTransactionId);
+				walletInfo.setPublicKey(publicKey);
+				walletInfo.setBalance(Converter.amountToDouble(walletDataGet.walletData.balance));
+			}
+		} catch (Throwable e) {
+			LOGGER.error("can t get balances", e);
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return new ResponseEntity<WalletInfoRest>(walletInfo, HttpStatus.OK);
 	}
 
 }
