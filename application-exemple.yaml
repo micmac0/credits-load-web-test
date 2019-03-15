@@ -7,23 +7,26 @@ server:
 
 
 nodes-wallets-definition:
-  nb-trx-thread: 80000
+  nb-trx-thread: 10
   nodes:
     - address: 
       port: 9090
       from-public-key: 
       from-private-key: 
       to-public-key: 
+      time-trx-wait-ms: 0
     - address: 
       port: 9090
       from-public-key: 
       from-private-key: 
       to-public-key: 
+      time-trx-wait-ms: 0
     - address: 161.156.96.21
       port: 8989
       from-public-key: 
       from-private-key: 
       to-public-key: 
+      time-trx-wait-ms: 0
 
 debug: false
 trace: false

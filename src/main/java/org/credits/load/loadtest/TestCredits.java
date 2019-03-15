@@ -34,7 +34,7 @@ public class TestCredits implements CommandLineRunner {
 		// TODO Auto-generated method stub
 		LOGGER.info("Hey start APP");
 		// doSend();
-		// sendCreditsService.executeAsynchronously();
+		sendCreditsService.executeAsynchronously();
 		// callSmartContract.executeAsynchronously();
 
 	}

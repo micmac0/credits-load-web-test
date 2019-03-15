@@ -120,9 +120,10 @@ public class DoSendCsThread implements Runnable {
 						PrivateKey privateKey = Ed25519.bytesToPrivateKey(privateKeyByteArr1);
 						byte[] signature = Ed25519.sign(tStruct.getBytes(), privateKey);
 						transaction.setSignature(signature);
+						// LOGGER.info(Converter.bytesToHex(tStruct.getBytes()));
 
 						TransactionFlowResult res2 = client.TransactionFlow(transaction);
-
+						// LOGGER.info(res2.status.getMessage());
 						Integer waitTime = nodesProperties.getNodes().get(nodeConfigNumber).getTimeTrxWaitMs();
 						Thread.currentThread().sleep(waitTime);
 
