@@ -42,7 +42,8 @@ public class DoSendCsThread implements Runnable {
 
 	private Integer nodeConfigNumber;
 	private Integer nbSend;
-	private Integer nbTrxResyncTrxId = 500;
+	private Integer nbTrxResyncTrxId;
+	private Integer timeBeforeResyncTrxId;
 
 	@Autowired
 	NodesProperties nodesProperties;
@@ -66,6 +67,8 @@ public class DoSendCsThread implements Runnable {
 		byte[] sourceByte = Converter.decodeFromBASE58(source);
 		byte[] targetByte = Converter.decodeFromBASE58(target);
 
+		Long previousId = -1L;
+
 		Fee maxFee = new Fee(new BigDecimal("0.1"));
 
 		try {
@@ -75,17 +78,26 @@ public class DoSendCsThread implements Runnable {
 			TProtocol protocol = new TBinaryProtocol(transport);
 			API.Client client = clientFactory.getClient(protocol);
 			transport.open();
-
-			WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
-			if (transId != null)
-				id = transId.lastTransactionInnerId + 1;
-			else
-				id = 0L;
+			LOGGER.info("thread {} sending configuration : {} trx will be submited per round with {}ms delay between trx,  {}ms between each round", nodeConfigNumber, nbTrxResyncTrxId,
+					nodesProperties.getNodes().get(nodeConfigNumber).getTimeTrxWaitMs(),
+					timeBeforeResyncTrxId);
 			if (transport.isOpen()) {
 
 				for (int i = 0; i < (nbSend / nbTrxResyncTrxId) + 1; i++) {
 
-					LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
+					WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
+					if (transId != null)
+						id = transId.lastTransactionInnerId + 1;
+					else
+						id = 0L;
+					if (previousId == -1L) {
+						LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
+
+					} else {
+						LOGGER.info("thread {} have last id : {}, rejected from last session {} {}%", nodeConfigNumber, id, previousId + nbTrxResyncTrxId - id,
+								(previousId + nbTrxResyncTrxId - id) * 100 / nbTrxResyncTrxId);
+					}
+					previousId = id;
 					if (nbSend / nbTrxResyncTrxId > 0)
 						maxCount = nbTrxResyncTrxId;
 					else
@@ -130,6 +142,7 @@ public class DoSendCsThread implements Runnable {
 						id++;
 					}
 
+					Thread.sleep(timeBeforeResyncTrxId);
 				}
 			}
 			transport.close();
@@ -149,6 +162,14 @@ public class DoSendCsThread implements Runnable {
 
 	public void setNbSend(Integer nbSend) {
 		this.nbSend = nbSend;
+	}
+
+	public void setNbTrxResyncTrxId(Integer nbTrxResyncTrxId) {
+		this.nbTrxResyncTrxId = nbTrxResyncTrxId;
+	}
+
+	public void setTimeBeforeResyncTrxId(Integer timeBeforeResyncTrxId) {
+		this.timeBeforeResyncTrxId = timeBeforeResyncTrxId;
 	}
 
 }

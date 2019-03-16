@@ -2,6 +2,7 @@ package org.credits.load.loadtest;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.security.PrivateKey;
 
 import org.apache.thrift.TBase;
 import org.apache.thrift.TSerializer;
@@ -20,8 +21,8 @@ import com.credits.client.executor.thrift.generated.ContractExecutor;
 import com.credits.client.node.thrift.generated.API;
 import com.credits.client.node.thrift.generated.API.Client;
 import com.credits.client.node.thrift.generated.API.Client.Factory;
+import com.credits.client.node.thrift.generated.Amount;
 import com.credits.client.node.thrift.generated.AmountCommission;
-import com.credits.client.node.thrift.generated.SmartContractDataResult;
 import com.credits.client.node.thrift.generated.SmartContractGetResult;
 import com.credits.client.node.thrift.generated.SmartContractInvocation;
 import com.credits.client.node.thrift.generated.Transaction;
@@ -31,6 +32,8 @@ import com.credits.client.node.thrift.generated.WalletTransactionsCountGetResult
 import com.credits.common.exception.CreditsCommonException;
 import com.credits.common.utils.Converter;
 import com.credits.common.utils.Fee;
+import com.credits.common.utils.TransactionStruct;
+import com.credits.crypto.Ed25519;
 import com.credits.leveldb.client.exception.LevelDbClientException;
 
 @Component
@@ -63,7 +66,7 @@ public class DoSendSmartContractThread implements Runnable {
 		byte[] sourceByte = Converter.decodeFromBASE58(source);
 		byte[] targetByte = Converter.decodeFromBASE58(target);
 
-		Fee maxFee = new Fee(new BigDecimal("0.1"));
+		Fee maxFee = new Fee(new BigDecimal("0"));
 
 		try {
 			TTransport transport = new TSocket(nodesProperties.getNodes().get(nodeConfigNumber).getAddress(),
@@ -79,16 +82,16 @@ public class DoSendSmartContractThread implements Runnable {
 			else
 				id = 0L;
 			if (transport.isOpen()) {
-				SmartContractGetResult smr = client.SmartContractGet(ByteBuffer.wrap(Converter.decodeFromBASE58(target)));
-				SmartContractDataResult smd = client.SmartContractDataGet(ByteBuffer.wrap(Converter.decodeFromBASE58(target)));
+				SmartContractGetResult smart = client.SmartContractGet(ByteBuffer.wrap(Converter.decodeFromBASE58(target)));
 				ContractExecutor.Client clientSM = new ContractExecutor.Client(protocol);
 
 				Transaction transaction = new Transaction();
+				Amount amount = new Amount(0, 0);
 
 				transaction.setId(id);
 				transaction.setSource(ByteBuffer.wrap(sourceByte));
 				transaction.setTarget(ByteBuffer.wrap(targetByte));
-				transaction.setAmount(null);
+				transaction.setAmount(amount);
 				AmountCommission fee = new AmountCommission(maxFee.getFee());
 				transaction.setFee(fee);
 				transaction.setCurrency((byte) 1);
@@ -101,12 +104,12 @@ public class DoSendSmartContractThread implements Runnable {
 				TBase base = smartContractInvoc;
 				byte[] smSerialized = serializer.serialize(base);
 
-				// TransactionStruct tStruct = new TransactionStruct(id, source, target, BigDecimal.ZERO, maxFee.getFee(), (byte) 1, smSerialized);
-				// byte[] privateKeyByteArr1;
-				// privateKeyByteArr1 = Converter.decodeFromBASE58(pk);
-				// PrivateKey privateKey = Ed25519.bytesToPrivateKey(privateKeyByteArr1);
-				// byte[] signature = Ed25519.sign(tStruct.getBytes(), privateKey);
-				// transaction.setSignature(signature);
+				TransactionStruct tStruct = new TransactionStruct(id, source, target, BigDecimal.ZERO, maxFee.getFee(), (byte) 1, smSerialized);
+				byte[] privateKeyByteArr1;
+				privateKeyByteArr1 = Converter.decodeFromBASE58(pk);
+				PrivateKey privateKey = Ed25519.bytesToPrivateKey(privateKeyByteArr1);
+				byte[] signature = Ed25519.sign(tStruct.getBytes(), privateKey);
+				transaction.setSignature(signature);
 
 				TransactionFlowResult res = client.TransactionFlow(transaction);
 				System.out.println(res.getStatus().message);

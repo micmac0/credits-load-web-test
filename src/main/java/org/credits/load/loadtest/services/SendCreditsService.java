@@ -34,6 +34,8 @@ public class SendCreditsService {
 						DoSendCsThread doSendCsThread = applicationContext.getBean(DoSendCsThread.class);
 						doSendCsThread.setNodeConfigNumber(counter);
 						doSendCsThread.setNbSend(nodesProperties.getNbTrxThread());
+						doSendCsThread.setNbTrxResyncTrxId(nodesProperties.getNbTrxResyncTrxId());
+						doSendCsThread.setTimeBeforeResyncTrxId(nodesProperties.getTimeBeforeResyncTrxId());
 						taskExecutor.execute(doSendCsThread);
 
 					}

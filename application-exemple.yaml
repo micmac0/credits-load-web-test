@@ -8,6 +8,8 @@ server:
 
 nodes-wallets-definition:
   nb-trx-thread: 10
+  time-before-resync-trx-id: 2000
+  nb-trx-resync-trx-id: 500
   nodes:
     - address: 
       port: 9090
