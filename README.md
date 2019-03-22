@@ -34,7 +34,8 @@ for each node we can configure a source wallet and target wallet to send CS. A s
 * to-public-key = public key destrination address
 * time-trx-wait-ms = sleep time between two transfers.
 
-`./gradlew bootRun`
+`./gradlew bootRun`<br>
+or `./gradlew` and run the jar generated in build/libs with application.yaml in same directory
 
 
 also now available : http://localhost:8383/wallet/balances and you get balance of all your configured transfer wallets
