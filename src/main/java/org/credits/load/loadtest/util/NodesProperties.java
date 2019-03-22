@@ -13,6 +13,7 @@ public class NodesProperties {
 	private Integer nbTrxThread;
 	private Integer timeBeforeResyncTrxId;
 	private Integer nbTrxResyncTrxId;
+	private Integer incrementFactor;
 
 	public List<Node> getNodes() {
 		return nodes;
@@ -44,6 +45,14 @@ public class NodesProperties {
 
 	public void setNbTrxResyncTrxId(Integer nbTrxResyncTrxId) {
 		this.nbTrxResyncTrxId = nbTrxResyncTrxId;
+	}
+
+	public Integer getIncrementFactor() {
+		return incrementFactor;
+	}
+
+	public void setIncrementFactor(Integer incrementFactor) {
+		this.incrementFactor = incrementFactor;
 	}
 
 	public static class Node {

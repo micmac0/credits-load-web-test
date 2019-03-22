@@ -37,7 +37,7 @@ public class SendCreditsService {
 						doSendCsThread.setNbTrxResyncTrxId(nodesProperties.getNbTrxResyncTrxId());
 						doSendCsThread.setTimeBeforeResyncTrxId(nodesProperties.getTimeBeforeResyncTrxId());
 						taskExecutor.execute(doSendCsThread);
-
+						Thread.sleep(96);
 					}
 				} catch (Exception e) {
 					LOGGER.error("error", e);

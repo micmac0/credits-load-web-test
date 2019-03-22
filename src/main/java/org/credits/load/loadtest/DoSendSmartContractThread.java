@@ -25,6 +25,7 @@ import com.credits.client.node.thrift.generated.Amount;
 import com.credits.client.node.thrift.generated.AmountCommission;
 import com.credits.client.node.thrift.generated.SmartContractGetResult;
 import com.credits.client.node.thrift.generated.SmartContractInvocation;
+import com.credits.client.node.thrift.generated.SmartTransInfo;
 import com.credits.client.node.thrift.generated.Transaction;
 import com.credits.client.node.thrift.generated.TransactionFlowResult;
 import com.credits.client.node.thrift.generated.TransactionType;
@@ -61,12 +62,12 @@ public class DoSendSmartContractThread implements Runnable {
 		Integer maxCount = 0;
 		Long id = 0L;
 		String source = nodesProperties.getNodes().get(nodeConfigNumber).getFromPublicKey();
-		String target = "59Cb9zLbWADLLsXwzFLeaphjcYHqEGKc2XNj434X7THt";
+		String target = "5NBhUcQxoEsjxaANtGMyaUbzFDW5Ao3LfjNL44akNbzN";
 		String pk = nodesProperties.getNodes().get(nodeConfigNumber).getFromPrivateKey();
 		byte[] sourceByte = Converter.decodeFromBASE58(source);
 		byte[] targetByte = Converter.decodeFromBASE58(target);
 
-		Fee maxFee = new Fee(new BigDecimal("0"));
+		Fee maxFee = new Fee(new BigDecimal("1"));
 
 		try {
 			TTransport transport = new TSocket(nodesProperties.getNodes().get(nodeConfigNumber).getAddress(),
@@ -95,10 +96,13 @@ public class DoSendSmartContractThread implements Runnable {
 				AmountCommission fee = new AmountCommission(maxFee.getFee());
 				transaction.setFee(fee);
 				transaction.setCurrency((byte) 1);
-				SmartContractInvocation smartContractInvoc = new SmartContractInvocation("hello", null, false);
+				SmartContractInvocation smartContractInvoc = new SmartContractInvocation("getValue", null, false);
 				transaction.setSmartContract(smartContractInvoc);
 				transaction.setSmartContractIsSet(true);
 				transaction.setType(TransactionType.TT_SmartExecute);
+				SmartTransInfo smartInfo = new SmartTransInfo();
+				// smartInfo.
+				transaction.setSmartInfo(smartInfo);
 
 				TSerializer serializer = new TSerializer();
 				TBase base = smartContractInvoc;
@@ -109,10 +113,13 @@ public class DoSendSmartContractThread implements Runnable {
 				privateKeyByteArr1 = Converter.decodeFromBASE58(pk);
 				PrivateKey privateKey = Ed25519.bytesToPrivateKey(privateKeyByteArr1);
 				byte[] signature = Ed25519.sign(tStruct.getBytes(), privateKey);
+				LOGGER.info("ScLen = " + tStruct.getScLen());
 				transaction.setSignature(signature);
+				// LOGGER.info(Converter.bytesToHex(tStruct.getBytes()));
 
 				TransactionFlowResult res = client.TransactionFlow(transaction);
 				System.out.println(res.getStatus().message);
+				transport.flush();
 			}
 			transport.close();
 			LOGGER.info("thread {} ended", nodeConfigNumber);

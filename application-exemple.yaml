@@ -10,21 +10,22 @@ nodes-wallets-definition:
   nb-trx-thread: 10
   time-before-resync-trx-id: 2000
   nb-trx-resync-trx-id: 500
+  increment-factor: 13
   nodes:
-    - address: 
+    - address: 10.0.0.1
       port: 9090
       from-public-key: 
       from-private-key: 
       to-public-key: 
       time-trx-wait-ms: 0
-    - address: 
+    - address: 10.0.0.1
       port: 9090
       from-public-key: 
       from-private-key: 
       to-public-key: 
       time-trx-wait-ms: 0
-    - address: 161.156.96.21
-      port: 8989
+    - address: 10.0.0.2
+      port: 9090
       from-public-key: 
       from-private-key: 
       to-public-key: 

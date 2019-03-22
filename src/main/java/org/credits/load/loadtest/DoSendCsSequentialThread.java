@@ -36,9 +36,9 @@ import com.credits.leveldb.client.exception.LevelDbClientException;
 
 @Component
 @Scope("prototype")
-public class DoSendCsThread implements Runnable {
+public class DoSendCsSequentialThread implements Runnable {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(DoSendCsThread.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(DoSendCsSequentialThread.class);
 
 	private Integer nodeConfigNumber;
 	private Integer nbSend;
@@ -73,7 +73,6 @@ public class DoSendCsThread implements Runnable {
 		Fee maxFee = new Fee(new BigDecimal("0.1"));
 
 		try {
-			Integer waitTime = nodesProperties.getNodes().get(nodeConfigNumber).getTimeTrxWaitMs();
 			TTransport transport = new TSocket(nodesProperties.getNodes().get(nodeConfigNumber).getAddress(),
 					nodesProperties.getNodes().get(nodeConfigNumber).getPort());
 			Factory clientFactory = new Client.Factory();
@@ -84,19 +83,20 @@ public class DoSendCsThread implements Runnable {
 					nodesProperties.getNodes().get(nodeConfigNumber).getTimeTrxWaitMs(),
 					timeBeforeResyncTrxId);
 			if (transport.isOpen()) {
-				WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
-				if (transId != null)
-					id = transId.lastTransactionInnerId + incrementFactor;
-				else
-					id = 0L;
-				if (previousId == -1L) {
-					LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
 
-				} else {
-					LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
-				}
 				for (int i = 0; i < (nbSend / nbTrxResyncTrxId) + 1; i++) {
 
+					WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
+					if (transId != null)
+						id = transId.lastTransactionInnerId + incrementFactor;
+					else
+						id = 0L;
+					if (previousId == -1L) {
+						LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
+
+					} else {
+						LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
+					}
 					previousId = id;
 					if (nbSend / nbTrxResyncTrxId > 0)
 						maxCount = nbTrxResyncTrxId;
@@ -107,7 +107,7 @@ public class DoSendCsThread implements Runnable {
 
 						BigDecimal amountDecimal = new BigDecimal("0.0001");
 						Amount amount = Converter.bigDecimalToAmount(amountDecimal);
-						Amount balance = Converter.bigDecimalToAmount(new BigDecimal("1"));
+						Amount balance = Converter.bigDecimalToAmount(new BigDecimal("0.1"));
 						byte currency = 1;
 
 						AmountCommission fee = new AmountCommission(maxFee.getFee());
@@ -136,7 +136,7 @@ public class DoSendCsThread implements Runnable {
 
 						TransactionFlowResult res2 = client.TransactionFlow(transaction);
 						// LOGGER.info(res2.status.getMessage());
-
+						Integer waitTime = nodesProperties.getNodes().get(nodeConfigNumber).getTimeTrxWaitMs();
 						Thread.currentThread().sleep(waitTime);
 
 						id += incrementFactor;
