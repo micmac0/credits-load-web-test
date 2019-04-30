@@ -1,7 +1,9 @@
 package org.credits.load.loadtest.services;
 
-import org.credits.load.loadtest.DoSendCsThread;
+import org.credits.load.loadtest.DoDeploySmartContract;
+import org.credits.load.loadtest.DoSendSmartContractThread;
 import org.credits.load.loadtest.util.NodesProperties;
+import org.credits.load.loadtest.util.SmartContractProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,16 +12,15 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 
 @Service
-public class SendCreditsService {
-	private static final Logger LOGGER = LoggerFactory.getLogger(SendCreditsService.class);
-	@Autowired
-	private ApplicationContext applicationContext;
+public class DeploySmartContract {
+	private static final Logger LOGGER = LoggerFactory.getLogger(DeploySmartContract.class);
+
 
 	@Autowired
 	private TaskExecutor taskExecutor;
 
 	@Autowired
-	NodesProperties nodesProperties;
+	SmartContractProperties smartContractProperties;
 
 	public void executeAsynchronously() {
 
@@ -30,14 +31,10 @@ public class SendCreditsService {
 			public void run() {
 				try {
 
-					for (int counter = 0; counter < nodesProperties.getNodes().size(); counter++) {
-						DoSendCsThread doSendCsThread = applicationContext.getBean(DoSendCsThread.class);
-						doSendCsThread.setNodeConfigNumber(counter);
-						doSendCsThread.setNbSend(nodesProperties.getNbTrxThread());
+					DoDeploySmartContract smartContractThreadDeploy = new DoDeploySmartContract();
+					smartContractThreadDeploy.setSmartContractProperties(smartContractProperties);
+					taskExecutor.execute(smartContractThreadDeploy);
 
-						taskExecutor.execute(doSendCsThread);
-						Thread.sleep(96);
-					}
 				} catch (Exception e) {
 					LOGGER.error("error", e);
 				}

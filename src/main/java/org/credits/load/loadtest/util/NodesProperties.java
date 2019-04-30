@@ -11,8 +11,6 @@ import org.springframework.context.annotation.Configuration;
 public class NodesProperties {
 	private List<Node> nodes = new ArrayList<>();
 	private Integer nbTrxThread;
-	private Integer timeBeforeResyncTrxId;
-	private Integer nbTrxResyncTrxId;
 	private Integer incrementFactor;
 
 	public List<Node> getNodes() {
@@ -31,21 +29,6 @@ public class NodesProperties {
 		this.nbTrxThread = nbTrxThread;
 	}
 
-	public Integer getTimeBeforeResyncTrxId() {
-		return timeBeforeResyncTrxId;
-	}
-
-	public void setTimeBeforeResyncTrxId(Integer timeBeforeResyncTrxId) {
-		this.timeBeforeResyncTrxId = timeBeforeResyncTrxId;
-	}
-
-	public Integer getNbTrxResyncTrxId() {
-		return nbTrxResyncTrxId;
-	}
-
-	public void setNbTrxResyncTrxId(Integer nbTrxResyncTrxId) {
-		this.nbTrxResyncTrxId = nbTrxResyncTrxId;
-	}
 
 	public Integer getIncrementFactor() {
 		return incrementFactor;

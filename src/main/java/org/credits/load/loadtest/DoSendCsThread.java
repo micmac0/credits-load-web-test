@@ -59,7 +59,7 @@ public class DoSendCsThread implements Runnable {
 	}
 
 	private void doSend() throws LevelDbClientException, CreditsCommonException {
-		Integer maxCount = 0;
+
 		Long id = 0L;
 		String source = nodesProperties.getNodes().get(nodeConfigNumber).getFromPublicKey();
 		String target = nodesProperties.getNodes().get(nodeConfigNumber).getToPublicKey();
@@ -70,7 +70,7 @@ public class DoSendCsThread implements Runnable {
 
 		Long previousId = -1L;
 
-		Fee maxFee = new Fee(new BigDecimal("0.1"));
+		Fee maxFee = new Fee(new BigDecimal("1"));
 
 		try {
 			Integer waitTime = nodesProperties.getNodes().get(nodeConfigNumber).getTimeTrxWaitMs();
@@ -95,15 +95,8 @@ public class DoSendCsThread implements Runnable {
 				} else {
 					LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
 				}
-				for (int i = 0; i < (nbSend / nbTrxResyncTrxId) + 1; i++) {
 
-					previousId = id;
-					if (nbSend / nbTrxResyncTrxId > 0)
-						maxCount = nbTrxResyncTrxId;
-					else
-						maxCount = nbSend % nbTrxResyncTrxId;
-					List<Transaction> transactionToSend = new ArrayList<>();
-					for (int j = 0; j < maxCount; j++) {
+					for (int j = 0; j < nbSend; j++) {
 
 						BigDecimal amountDecimal = new BigDecimal("0.0001");
 						Amount amount = Converter.bigDecimalToAmount(amountDecimal);
@@ -142,9 +135,9 @@ public class DoSendCsThread implements Runnable {
 						id += incrementFactor;
 					}
 
-					Thread.sleep(timeBeforeResyncTrxId);
+
 				}
-			}
+			
 			transport.close();
 			LOGGER.info("thread {} ended", nodeConfigNumber);
 		} catch (Throwable e) {
@@ -164,12 +157,6 @@ public class DoSendCsThread implements Runnable {
 		this.nbSend = nbSend;
 	}
 
-	public void setNbTrxResyncTrxId(Integer nbTrxResyncTrxId) {
-		this.nbTrxResyncTrxId = nbTrxResyncTrxId;
-	}
 
-	public void setTimeBeforeResyncTrxId(Integer timeBeforeResyncTrxId) {
-		this.timeBeforeResyncTrxId = timeBeforeResyncTrxId;
-	}
 
 }

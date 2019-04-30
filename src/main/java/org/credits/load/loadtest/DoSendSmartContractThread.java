@@ -3,38 +3,40 @@ package org.credits.load.loadtest;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
-import org.apache.thrift.TBase;
-import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.credits.load.loadtest.util.NodesProperties;
+import org.credits.load.loadtest.util.SmartContractProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import com.credits.client.executor.thrift.generated.ContractExecutor;
+import com.credits.client.node.pojo.SmartContractData;
+import com.credits.client.node.pojo.SmartContractInvocationData;
+import com.credits.client.node.pojo.SmartContractTransactionFlowData;
+import com.credits.client.node.pojo.TransactionFlowData;
+import com.credits.client.node.pojo.TransactionFlowResultData;
+import com.credits.client.node.pojo.TransactionTypeData;
+import com.credits.client.node.service.NodeApiService;
+import com.credits.client.node.service.NodeApiServiceImpl;
 import com.credits.client.node.thrift.generated.API;
 import com.credits.client.node.thrift.generated.API.Client;
 import com.credits.client.node.thrift.generated.API.Client.Factory;
-import com.credits.client.node.thrift.generated.Amount;
-import com.credits.client.node.thrift.generated.AmountCommission;
-import com.credits.client.node.thrift.generated.SmartContractGetResult;
-import com.credits.client.node.thrift.generated.SmartContractInvocation;
-import com.credits.client.node.thrift.generated.SmartTransInfo;
-import com.credits.client.node.thrift.generated.Transaction;
-import com.credits.client.node.thrift.generated.TransactionFlowResult;
-import com.credits.client.node.thrift.generated.TransactionType;
 import com.credits.client.node.thrift.generated.WalletTransactionsCountGetResult;
+import com.credits.client.node.util.NodeClientUtils;
+import com.credits.client.node.util.SignUtils;
 import com.credits.common.exception.CreditsCommonException;
 import com.credits.common.utils.Converter;
 import com.credits.common.utils.Fee;
-import com.credits.common.utils.TransactionStruct;
 import com.credits.crypto.Ed25519;
+import com.credits.general.thrift.generated.Variant;
 import com.credits.leveldb.client.exception.LevelDbClientException;
 
 @Component
@@ -43,10 +45,7 @@ public class DoSendSmartContractThread implements Runnable {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(DoSendSmartContractThread.class);
 
-	private Integer nodeConfigNumber;
-
-	@Autowired
-	NodesProperties nodesProperties;
+	SmartContractProperties smartContractProperties;
 
 	@Override
 	public void run() {
@@ -61,17 +60,20 @@ public class DoSendSmartContractThread implements Runnable {
 	private void doSend() throws LevelDbClientException, CreditsCommonException {
 		Integer maxCount = 0;
 		Long id = 0L;
-		String source = nodesProperties.getNodes().get(nodeConfigNumber).getFromPublicKey();
-		String target = "5NBhUcQxoEsjxaANtGMyaUbzFDW5Ao3LfjNL44akNbzN";
-		String pk = nodesProperties.getNodes().get(nodeConfigNumber).getFromPrivateKey();
+
+		String source = smartContractProperties.getExecute().getFromPublic();
+		String target = smartContractProperties.getExecute().getSmAddress();
+		String pk = smartContractProperties.getExecute().getFromPrivate();
 		byte[] sourceByte = Converter.decodeFromBASE58(source);
 		byte[] targetByte = Converter.decodeFromBASE58(target);
+
+		Date now = new Date();
 
 		Fee maxFee = new Fee(new BigDecimal("1"));
 
 		try {
-			TTransport transport = new TSocket(nodesProperties.getNodes().get(nodeConfigNumber).getAddress(),
-					nodesProperties.getNodes().get(nodeConfigNumber).getPort());
+			TTransport transport = new TSocket(smartContractProperties.getExecute().getNodeAddress(),
+					smartContractProperties.getExecute().getNodePort());
 			Factory clientFactory = new Client.Factory();
 			TProtocol protocol = new TBinaryProtocol(transport);
 			API.Client client = clientFactory.getClient(protocol);
@@ -83,61 +85,81 @@ public class DoSendSmartContractThread implements Runnable {
 			else
 				id = 0L;
 			if (transport.isOpen()) {
-				SmartContractGetResult smart = client.SmartContractGet(ByteBuffer.wrap(Converter.decodeFromBASE58(target)));
-				ContractExecutor.Client clientSM = new ContractExecutor.Client(protocol);
+				for (int i = 0; i < smartContractProperties.getExecute().getNbExecution(); i++) {
+					NodeApiService nodeApiService = NodeApiServiceImpl.getInstance(
+							smartContractProperties.getExecute().getNodeAddress(),
+							smartContractProperties.getExecute().getNodePort());
+					SmartContractData smartContractData = nodeApiService.getSmartContract(target);
+					String code = smartContractData.getSmartContractDeployData().getSourceCode();
 
-				Transaction transaction = new Transaction();
-				Amount amount = new Amount(0, 0);
+					List<Variant> params = new ArrayList<Variant>();
+					smartContractProperties.getExecute().getParams().forEach( p -> {
+						Variant param = new Variant();
+						if("STRING".equals(p.getType())) {
+							String hachString ="";
+							for (int j=0; j<500;j++) {
+								hachString+=p.getValue()+"\n";
+							}
+							param.setFieldValue(Variant._Fields.V_STRING, hachString);
+//							param.setFieldValue(Variant._Fields.V_STRING, p.getValue());
+						} else if("INTEGER".equals(p.getType())) {
+							param.setFieldValue(Variant._Fields.V_INT, new Integer(p.getValue()));
+						} else if("DOUBLE".equals(p.getType())) {
+							param.setFieldValue(Variant._Fields.V_DOUBLE, new Double(p.getValue()));
+						} else if("BOOLEAN".equals(p.getType())) {
+							param.setFieldValue(Variant._Fields.V_BOOLEAN, new Boolean(p.getValue()));
+						} else if("FLOAT".equals(p.getType())) {
+							param.setFieldValue(Variant._Fields.V_FLOAT, new Double(p.getValue()));
+						} else if("LONG".equals(p.getType())) {
+							param.setFieldValue(Variant._Fields.V_LONG, new Long(p.getValue()));
+						}
+						params.add(param);
+					});
+					String methodName = smartContractProperties.getExecute().getMethod();
 
-				transaction.setId(id);
-				transaction.setSource(ByteBuffer.wrap(sourceByte));
-				transaction.setTarget(ByteBuffer.wrap(targetByte));
-				transaction.setAmount(amount);
-				AmountCommission fee = new AmountCommission(maxFee.getFee());
-				transaction.setFee(fee);
-				transaction.setCurrency((byte) 1);
-				SmartContractInvocation smartContractInvoc = new SmartContractInvocation("getValue", null, false);
-				transaction.setSmartContract(smartContractInvoc);
-				transaction.setSmartContractIsSet(true);
-				transaction.setType(TransactionType.TT_SmartExecute);
-				SmartTransInfo smartInfo = new SmartTransInfo();
-				// smartInfo.
-				transaction.setSmartInfo(smartInfo);
+					smartContractData.setGetterMethod(false);
+					smartContractData.setMethod(methodName);
+					smartContractData.setParams(params);
 
-				TSerializer serializer = new TSerializer();
-				TBase base = smartContractInvoc;
-				byte[] smSerialized = serializer.serialize(base);
+					SmartContractInvocationData smartContractInvocData = new SmartContractInvocationData(
+							smartContractData.getSmartContractDeployData(), methodName, params, null, smartContractProperties.getExecute().getRunLocally());
+					byte[] smartContractBytes = NodeClientUtils.serializeByThrift(smartContractInvocData);
 
-				TransactionStruct tStruct = new TransactionStruct(id, source, target, BigDecimal.ZERO, maxFee.getFee(), (byte) 1, smSerialized);
-				byte[] privateKeyByteArr1;
-				privateKeyByteArr1 = Converter.decodeFromBASE58(pk);
-				PrivateKey privateKey = Ed25519.bytesToPrivateKey(privateKeyByteArr1);
-				byte[] signature = Ed25519.sign(tStruct.getBytes(), privateKey);
-				LOGGER.info("ScLen = " + tStruct.getScLen());
-				transaction.setSignature(signature);
-				// LOGGER.info(Converter.bytesToHex(tStruct.getBytes()));
+					TransactionFlowData tStruct = new TransactionFlowData(id, sourceByte, targetByte, BigDecimal.ZERO,
+							maxFee.getFee(), smartContractBytes, null);
 
-				TransactionFlowResult res = client.TransactionFlow(transaction);
-				System.out.println(res.getStatus().message);
-				transport.flush();
+					byte[] privateKeyByteArr1;
+					privateKeyByteArr1 = Converter.decodeFromBASE58(pk);
+					PrivateKey privateKey = Ed25519.bytesToPrivateKey(privateKeyByteArr1);
+					SignUtils.signTransaction(tStruct, privateKey);
+
+//		        TransactionFlowData transactionData=new TransactionFlowData(id, source, target, amount, offeredMaxFee16Bits, currency, smartContractBytes, commentBytes, signature);
+//
+					LOGGER.info(Converter.bytesToHex(tStruct.getSignature()));
+					SmartContractTransactionFlowData smartContractDataTrxFlow = new SmartContractTransactionFlowData(
+							tStruct, smartContractInvocData);
+					smartContractDataTrxFlow.setType(TransactionTypeData.TT_SmartExecute);
+					LOGGER.info("send transaction");
+					TransactionFlowResultData result = nodeApiService
+							.smartContractTransactionFlow(smartContractDataTrxFlow);
+					LOGGER.info("wait response");
+					Optional<Variant> var = result.getContractResult();
+					//String strVar = var.get().getV_string();
+					//LOGGER.info(strVar);
+					LOGGER.info("end response");
+					id++;
+					// nodeApiService.transactionFlow(smartContractDataTrxFlow);
+				}
+				transport.close();
+				LOGGER.info("thread  ended");
 			}
-			transport.close();
-			LOGGER.info("thread {} ended", nodeConfigNumber);
 		} catch (Throwable e) {
-			LOGGER.error("erreur in sending thread number {}", nodeConfigNumber, e);
+			LOGGER.error("erreur in sending ", e);
 		}
 	}
 
-	public Integer getNodeConfigNumber() {
-		return nodeConfigNumber;
-	}
-
-	public void setNodeConfigNumber(Integer nodeConfigNumber) {
-		this.nodeConfigNumber = nodeConfigNumber;
-	}
-
-	public void setNodesProperties(NodesProperties nodesProperties) {
-		this.nodesProperties = nodesProperties;
+	public void setSmartContractProperties(SmartContractProperties smartContractProperties) {
+		this.smartContractProperties = smartContractProperties;
 	}
 
 }

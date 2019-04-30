@@ -1,7 +1,9 @@
 package org.credits.load.loadtest;
 
 import org.credits.load.loadtest.services.CallSmartContract;
+import org.credits.load.loadtest.services.DeploySmartContract;
 import org.credits.load.loadtest.services.SendCreditsService;
+import org.credits.load.loadtest.util.GeneralProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,14 @@ public class TestCredits implements CommandLineRunner {
 
 	@Autowired
 	CallSmartContract callSmartContract;
+	
+	@Autowired
+	DeploySmartContract deploySmartContract;
+	
+	@Autowired
+	GeneralProperties generalProperties;
+	
+	
 
 	public static void main(String[] args) {
 		// launch app
@@ -33,9 +43,16 @@ public class TestCredits implements CommandLineRunner {
 
 		// TODO Auto-generated method stub
 		LOGGER.info("Hey start APP");
-		// doSend();
-		sendCreditsService.executeAsynchronously();
-		// callSmartContract.executeAsynchronously();
+
+		if(generalProperties.getMode() == 1) {
+			sendCreditsService.executeAsynchronously();
+		} else if(generalProperties.getMode() == 2) {
+			callSmartContract.executeAsynchronously();
+		} else if(generalProperties.getMode() == 3) {
+			deploySmartContract.executeAsynchronously();
+		}
+
+		
 
 	}
 

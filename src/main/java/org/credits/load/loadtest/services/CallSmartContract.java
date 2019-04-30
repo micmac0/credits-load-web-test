@@ -2,6 +2,7 @@ package org.credits.load.loadtest.services;
 
 import org.credits.load.loadtest.DoSendSmartContractThread;
 import org.credits.load.loadtest.util.NodesProperties;
+import org.credits.load.loadtest.util.SmartContractProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +20,7 @@ public class CallSmartContract {
 	private TaskExecutor taskExecutor;
 
 	@Autowired
-	NodesProperties nodesProperties;
+	SmartContractProperties smartContractProperties;
 
 	public void executeAsynchronously() {
 
@@ -31,8 +32,7 @@ public class CallSmartContract {
 				try {
 
 					DoSendSmartContractThread smartContractThreadCall = new DoSendSmartContractThread();
-					smartContractThreadCall.setNodeConfigNumber(0);
-					smartContractThreadCall.setNodesProperties(nodesProperties);
+					smartContractThreadCall.setSmartContractProperties(smartContractProperties);
 					taskExecutor.execute(smartContractThreadCall);
 
 				} catch (Exception e) {
