@@ -1,8 +1,5 @@
 package org.credits.load.loadtest;
 
-import static com.credits.wallet.desktop.utils.DeployControllerUtils.getTokenStandard;
-import static java.math.BigDecimal.ZERO;
-
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -11,26 +8,25 @@ import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.credits.load.loadtest.util.Fee;
 import org.credits.load.loadtest.util.SmartContractProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import com.credits.client.node.pojo.SmartContractData;
+import com.credits.client.node.crypto.Ed25519;
 import com.credits.client.node.pojo.SmartContractDeployData;
 import com.credits.client.node.pojo.SmartContractInvocationData;
 import com.credits.client.node.pojo.SmartContractTransactionFlowData;
 import com.credits.client.node.pojo.TokenStandartData;
 import com.credits.client.node.pojo.TransactionFlowData;
 import com.credits.client.node.pojo.TransactionFlowResultData;
-import com.credits.client.node.pojo.TransactionTypeData;
 import com.credits.client.node.service.NodeApiService;
 import com.credits.client.node.service.NodeApiServiceImpl;
 import com.credits.client.node.thrift.generated.API;
@@ -39,18 +35,12 @@ import com.credits.client.node.thrift.generated.API.Client.Factory;
 import com.credits.client.node.thrift.generated.WalletTransactionsCountGetResult;
 import com.credits.client.node.util.NodeClientUtils;
 import com.credits.client.node.util.SignUtils;
-import com.credits.common.exception.CreditsCommonException;
-import com.credits.common.utils.Converter;
-import com.credits.common.utils.Fee;
-import com.credits.crypto.Ed25519;
 import com.credits.general.classload.ByteCodeContractClassLoader;
 import com.credits.general.pojo.ByteCodeObjectData;
 import com.credits.general.thrift.generated.Variant;
 import com.credits.general.util.GeneralConverter;
 import com.credits.general.util.compiler.InMemoryCompiler;
 import com.credits.general.util.compiler.model.CompilationPackage;
-import com.credits.leveldb.client.exception.LevelDbClientException;
-
 import com.credits.wallet.desktop.utils.SmartContractsUtils;
 import com.credits.wallet.desktop.utils.sourcecode.SourceCodeUtils;
 import com.credits.wallet.desktop.utils.sourcecode.building.CompilationResult;
@@ -74,12 +64,12 @@ public class DoDeploySmartContract implements Runnable {
 		}
 	}
 
-	private void doSend() throws LevelDbClientException, CreditsCommonException {
+	private void doSend()  {
 		Integer maxCount = 0;
 		Long id = 0L;
 
 		String source = smartContractProperties.getDeploy().getFromPublic();
-		byte[] sourceByte = Converter.decodeFromBASE58(source);
+		byte[] sourceByte = GeneralConverter.decodeFromBASE58(source);
 		String pk = smartContractProperties.getDeploy().getFromPrivate();
 		String smartContractSourceFile = smartContractProperties.getDeploy().getSourceFile();
 
@@ -137,12 +127,12 @@ public class DoDeploySmartContract implements Runnable {
 			        
 					
 			        byte[] privateKeyByteArr1;
-					privateKeyByteArr1 = Converter.decodeFromBASE58(pk);
+					privateKeyByteArr1 = GeneralConverter.decodeFromBASE58(pk);
 					PrivateKey privateKey = Ed25519.bytesToPrivateKey(privateKeyByteArr1);
 					SignUtils.signTransaction(tStruct, privateKey);
 			        
 
-					LOGGER.info(Converter.bytesToHex(tStruct.getSignature()));
+					//LOGGER.info(Converter.bytesToHex(tStruct.getSignature()));
 					LOGGER.info(scData.getSmartContractDeployData().getSourceCode());
 			        SmartContractTransactionFlowData smartContractFlowData = new SmartContractTransactionFlowData(tStruct,scData);
 

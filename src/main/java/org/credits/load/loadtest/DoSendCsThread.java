@@ -11,6 +11,7 @@ import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.credits.load.loadtest.util.Fee;
 import org.credits.load.loadtest.util.NodesProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import com.credits.client.node.crypto.Ed25519;
+import com.credits.client.node.pojo.TransactionFlowData;
+import com.credits.client.node.pojo.TransactionFlowResultData;
+import com.credits.client.node.service.NodeApiService;
+import com.credits.client.node.service.NodeApiServiceImpl;
 import com.credits.client.node.thrift.generated.API;
 import com.credits.client.node.thrift.generated.API.Client;
 import com.credits.client.node.thrift.generated.API.Client.Factory;
@@ -27,12 +33,10 @@ import com.credits.client.node.thrift.generated.Transaction;
 import com.credits.client.node.thrift.generated.TransactionFlowResult;
 import com.credits.client.node.thrift.generated.TransactionType;
 import com.credits.client.node.thrift.generated.WalletTransactionsCountGetResult;
-import com.credits.common.exception.CreditsCommonException;
-import com.credits.common.utils.Converter;
-import com.credits.common.utils.Fee;
-import com.credits.common.utils.TransactionStruct;
-import com.credits.crypto.Ed25519;
-import com.credits.leveldb.client.exception.LevelDbClientException;
+import com.credits.client.node.util.NodePojoConverter;
+import com.credits.client.node.util.SignUtils;
+import com.credits.general.util.GeneralConverter;
+
 
 @Component
 @Scope("prototype")
@@ -58,14 +62,14 @@ public class DoSendCsThread implements Runnable {
 		}
 	}
 
-	private void doSend() throws LevelDbClientException, CreditsCommonException {
+	private void doSend(){
 
 		Long id = 0L;
 		String source = nodesProperties.getNodes().get(nodeConfigNumber).getFromPublicKey();
 		String target = nodesProperties.getNodes().get(nodeConfigNumber).getToPublicKey();
 		String pk = nodesProperties.getNodes().get(nodeConfigNumber).getFromPrivateKey();
-		byte[] sourceByte = Converter.decodeFromBASE58(source);
-		byte[] targetByte = Converter.decodeFromBASE58(target);
+		byte[] sourceByte = GeneralConverter.decodeFromBASE58(source);
+		byte[] targetByte = GeneralConverter.decodeFromBASE58(target);
 		Integer incrementFactor = nodesProperties.getIncrementFactor();
 
 		Long previousId = -1L;
@@ -83,6 +87,7 @@ public class DoSendCsThread implements Runnable {
 			LOGGER.info("thread {} sending configuration : {} trx will be submited per round with {}ms delay between trx,  {}ms between each round", nodeConfigNumber, nbTrxResyncTrxId,
 					nodesProperties.getNodes().get(nodeConfigNumber).getTimeTrxWaitMs(),
 					timeBeforeResyncTrxId);
+			
 			if (transport.isOpen()) {
 				WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
 				if (transId != null)
@@ -94,41 +99,40 @@ public class DoSendCsThread implements Runnable {
 
 				} else {
 					LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
-				}
+				}						
+				NodeApiService nodeApiService = NodeApiServiceImpl.getInstance(
+						nodesProperties.getNodes().get(nodeConfigNumber).getAddress(),
+						nodesProperties.getNodes().get(nodeConfigNumber).getPort());
 
 					for (int j = 0; j < nbSend; j++) {
 
 						BigDecimal amountDecimal = new BigDecimal("0.0001");
-						Amount amount = Converter.bigDecimalToAmount(amountDecimal);
-						Amount balance = Converter.bigDecimalToAmount(new BigDecimal("1"));
-						byte currency = 1;
+						Amount amount = NodePojoConverter.bigDecimalToAmount(amountDecimal);
+						Amount balance = NodePojoConverter.bigDecimalToAmount(new BigDecimal("1"));
 
-						AmountCommission fee = new AmountCommission(maxFee.getFee());
-						long timeCreation = new Date().getTime();
-						TransactionType type = null;// TransactionType.TT_Normal;
-						Transaction transaction = new Transaction();
-						transaction.setId(id);
-						transaction.setAmount(amount);
-						transaction.setBalance(balance);
-						transaction.setCurrency(currency);
 
-						transaction.setFee(fee);
-						transaction.setTimeCreation(timeCreation);
-						transaction.setType(null);
 
-						transaction.setSource(sourceByte);
-						transaction.setTarget(targetByte);
-						TransactionStruct tStruct = new TransactionStruct(id, source, target, amountDecimal, maxFee.getFee(), currency, null);
+
+
+
+
+
+						TransactionFlowData tStruct = new TransactionFlowData(id, sourceByte, targetByte, amountDecimal,
+								maxFee.getFee(), null, null);
 
 						byte[] privateKeyByteArr1;
-						privateKeyByteArr1 = Converter.decodeFromBASE58(pk);
+						privateKeyByteArr1 = GeneralConverter.decodeFromBASE58(pk);
 						PrivateKey privateKey = Ed25519.bytesToPrivateKey(privateKeyByteArr1);
-						byte[] signature = Ed25519.sign(tStruct.getBytes(), privateKey);
-						transaction.setSignature(signature);
+						SignUtils.signTransaction(tStruct, privateKey);
+						
+
 						// LOGGER.info(Converter.bytesToHex(tStruct.getBytes()));
 
-						TransactionFlowResult res2 = client.TransactionFlow(transaction);
-						// LOGGER.info(res2.status.getMessage());
+						
+						TransactionFlowResultData res2 = nodeApiService.transactionFlow(tStruct);
+						
+						//TransactionFlowResult res2 = client.TransactionFlow(transaction);
+						 LOGGER.info(res2.getMessage());
 
 						Thread.currentThread().sleep(waitTime);
 

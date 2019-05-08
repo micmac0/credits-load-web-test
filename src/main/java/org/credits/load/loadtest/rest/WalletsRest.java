@@ -1,5 +1,6 @@
 package org.credits.load.loadtest.rest;
 
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -29,7 +30,8 @@ import com.credits.client.node.thrift.generated.API.Client;
 import com.credits.client.node.thrift.generated.API.Client.Factory;
 import com.credits.client.node.thrift.generated.WalletBalanceGetResult;
 import com.credits.client.node.thrift.generated.WalletDataGetResult;
-import com.credits.common.utils.Converter;
+import com.credits.client.node.util.NodePojoConverter;
+import com.credits.general.util.GeneralConverter;
 
 @RestController
 @CrossOrigin
@@ -56,11 +58,11 @@ public class WalletsRest {
 				Iterator<Node> nodeIt = nodesProperties.getNodes().iterator();
 				while (nodeIt.hasNext()) {
 					String source = nodeIt.next().getFromPublicKey();
-					byte[] sourceByte = Converter.decodeFromBASE58(source);
+					byte[] sourceByte = GeneralConverter.decodeFromBASE58(source);
 					BalanceRest balanceRest = new BalanceRest();
 					WalletBalanceGetResult balanceGet = client.WalletBalanceGet(ByteBuffer.wrap(sourceByte));
 					balanceRest.setPublicKey(source);
-					balanceRest.setAmount(Converter.amountToBigDecimal(balanceGet.balance));
+					balanceRest.setAmount(NodePojoConverter.amountToBigDecimal(balanceGet.getBalance()));
 					balancesList.add(balanceRest);
 				}
 			}
@@ -83,10 +85,10 @@ public class WalletsRest {
 			API.Client client = clientFactory.getClient(protocol);
 			transport.open();
 			if (transport.isOpen()) {
-				WalletDataGetResult walletDataGet = client.WalletDataGet(ByteBuffer.wrap(Converter.decodeFromBASE58(publicKey)));
+				WalletDataGetResult walletDataGet = client.WalletDataGet(ByteBuffer.wrap(GeneralConverter.decodeFromBASE58(publicKey)));
 				walletInfo.setLastTrxId(walletDataGet.walletData.lastTransactionId);
 				walletInfo.setPublicKey(publicKey);
-				walletInfo.setBalance(Converter.amountToDouble(walletDataGet.walletData.balance));
+				walletInfo.setBalance(GeneralConverter.toDouble(walletDataGet.walletData.balance));
 			}
 		} catch (Throwable e) {
 			LOGGER.error("can t get balances", e);

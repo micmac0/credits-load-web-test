@@ -73,7 +73,6 @@ dependencies {
 	
 	compile group: 'joda-time', name: 'joda-time', version: '2.9.9'
 	compile group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.3'
-	compile group: 'org.micmac.credits', name: 'credits-thrift-client', version: '1.0.0-4.1'
 
 }
 

@@ -12,12 +12,15 @@ import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
+import org.credits.load.loadtest.util.Fee;
 import org.credits.load.loadtest.util.SmartContractProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import com.credits.client.node.crypto.Ed25519;
 import com.credits.client.node.pojo.SmartContractData;
 import com.credits.client.node.pojo.SmartContractInvocationData;
 import com.credits.client.node.pojo.SmartContractTransactionFlowData;
@@ -32,12 +35,10 @@ import com.credits.client.node.thrift.generated.API.Client.Factory;
 import com.credits.client.node.thrift.generated.WalletTransactionsCountGetResult;
 import com.credits.client.node.util.NodeClientUtils;
 import com.credits.client.node.util.SignUtils;
-import com.credits.common.exception.CreditsCommonException;
-import com.credits.common.utils.Converter;
-import com.credits.common.utils.Fee;
-import com.credits.crypto.Ed25519;
+
 import com.credits.general.thrift.generated.Variant;
-import com.credits.leveldb.client.exception.LevelDbClientException;
+import com.credits.general.util.GeneralConverter;
+
 
 @Component
 @Scope("prototype")
@@ -57,15 +58,16 @@ public class DoSendSmartContractThread implements Runnable {
 		}
 	}
 
-	private void doSend() throws LevelDbClientException, CreditsCommonException {
+	private void doSend() {
 		Integer maxCount = 0;
 		Long id = 0L;
 
 		String source = smartContractProperties.getExecute().getFromPublic();
 		String target = smartContractProperties.getExecute().getSmAddress();
 		String pk = smartContractProperties.getExecute().getFromPrivate();
-		byte[] sourceByte = Converter.decodeFromBASE58(source);
-		byte[] targetByte = Converter.decodeFromBASE58(target);
+		
+		byte[] sourceByte = GeneralConverter.decodeFromBASE58(source);
+		byte[] targetByte = GeneralConverter.decodeFromBASE58(target);
 
 		Date now = new Date();
 
@@ -129,24 +131,26 @@ public class DoSendSmartContractThread implements Runnable {
 							maxFee.getFee(), smartContractBytes, null);
 
 					byte[] privateKeyByteArr1;
-					privateKeyByteArr1 = Converter.decodeFromBASE58(pk);
+					privateKeyByteArr1 = GeneralConverter.decodeFromBASE58(pk);
 					PrivateKey privateKey = Ed25519.bytesToPrivateKey(privateKeyByteArr1);
 					SignUtils.signTransaction(tStruct, privateKey);
 
 //		        TransactionFlowData transactionData=new TransactionFlowData(id, source, target, amount, offeredMaxFee16Bits, currency, smartContractBytes, commentBytes, signature);
 //
-					LOGGER.info(Converter.bytesToHex(tStruct.getSignature()));
+
 					SmartContractTransactionFlowData smartContractDataTrxFlow = new SmartContractTransactionFlowData(
 							tStruct, smartContractInvocData);
 					smartContractDataTrxFlow.setType(TransactionTypeData.TT_SmartExecute);
 					LOGGER.info("send transaction");
+					
 					TransactionFlowResultData result = nodeApiService
 							.smartContractTransactionFlow(smartContractDataTrxFlow);
-					LOGGER.info("wait response");
+
 					Optional<Variant> var = result.getContractResult();
 					//String strVar = var.get().getV_string();
 					//LOGGER.info(strVar);
-					LOGGER.info("end response");
+					if(var.isPresent())
+						LOGGER.info(var.get().toString());
 					id++;
 					// nodeApiService.transactionFlow(smartContractDataTrxFlow);
 				}
