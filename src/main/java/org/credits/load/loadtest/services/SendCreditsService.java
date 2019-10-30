@@ -36,7 +36,7 @@ public class SendCreditsService {
 						doSendCsThread.setNbSend(nodesProperties.getNbTrxThread());
 
 						taskExecutor.execute(doSendCsThread);
-						Thread.sleep(96);
+
 					}
 				} catch (Exception e) {
 					LOGGER.error("error", e);

@@ -1,5 +1,7 @@
 package org.credits.load.loadtest;
 
+import com.credits.wallet.desktop.utils.DeployControllerUtils;
+
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -24,7 +26,6 @@ import com.credits.client.node.crypto.Ed25519;
 import com.credits.client.node.pojo.SmartContractDeployData;
 import com.credits.client.node.pojo.SmartContractInvocationData;
 import com.credits.client.node.pojo.SmartContractTransactionFlowData;
-import com.credits.client.node.pojo.TokenStandartData;
 import com.credits.client.node.pojo.TransactionFlowData;
 import com.credits.client.node.pojo.TransactionFlowResultData;
 import com.credits.client.node.service.NodeApiService;
@@ -76,13 +77,13 @@ public class DoDeploySmartContract implements Runnable {
 		Date now = new Date();
 
 		Fee maxFee = new Fee(new BigDecimal("1"));
-
+		TTransport transport = new TSocket(smartContractProperties.getDeploy().getNodeAddress(),
+				smartContractProperties.getDeploy().getNodePort());
 		try {
 			
 			String smartContractSourceCode = SourceCodeUtils.normalizeSourceCode(new String(Files.readAllBytes(Paths.get(smartContractSourceFile))));
 			
-			TTransport transport = new TSocket(smartContractProperties.getExecute().getNodeAddress(),
-					smartContractProperties.getExecute().getNodePort());
+			
 			Factory clientFactory = new Client.Factory();
 			TProtocol protocol = new TBinaryProtocol(transport);
 			API.Client client = clientFactory.getClient(protocol);
@@ -95,35 +96,42 @@ public class DoDeploySmartContract implements Runnable {
 				id = 0L;
 			if (transport.isOpen()) {
 					NodeApiService nodeApiService = NodeApiServiceImpl.getInstance(
-						smartContractProperties.getExecute().getNodeAddress(),
-						smartContractProperties.getExecute().getNodePort());
+						smartContractProperties.getDeploy().getNodeAddress(),
+						smartContractProperties.getDeploy().getNodePort());
 			        
 					long transactionId = id;	
 			        String method = new String();
 					List<Variant> params = new ArrayList<Variant>();
-					InMemoryCompiler compiler = new InMemoryCompiler();
+					InMemoryCompiler compiler = new InMemoryCompiler(null);
 					CompilationPackage compilationPackage = compiler.compileSourceCode(smartContractSourceCode);
 					CompilationResult compileResult = SourceCodeBuilder.compileSmartSourceCode(smartContractSourceCode);
 
 
 					
-                    List<ByteCodeObjectData> byteCodeObjectDataList =
-                            GeneralConverter.compilationPackageToByteCodeObjects(compilationPackage);
+                    List<ByteCodeObjectData> byteCodeObjectDataList = GeneralConverter.compilationPackageToByteCodeObjectsData(compilationPackage);
+                            
 
                         Class<?> contractClass = compileSmartContractByteCode(byteCodeObjectDataList);
                         
 
-                        SmartContractDeployData smartContractDeployData =
-                            new SmartContractDeployData(smartContractSourceCode, byteCodeObjectDataList, TokenStandartData.NotAToken);
+                        int tokenStandardId = DeployControllerUtils.getTokenStandard(contractClass);
+						SmartContractDeployData smartContractDeployData =new SmartContractDeployData(smartContractSourceCode, byteCodeObjectDataList, tokenStandardId);
+                            //new SmartContractDeployData(smartContractSourceCode, byteCodeObjectDataList);
 
 			       
 			       // SmartContractDeployData smartContractDeployData = new SmartContractDeployData(smartContractSourceCode, null, TokenStandartData.CreditsBasic);
 			        byte[] smAddress = SmartContractsUtils.generateSmartContractAddress(sourceByte, transactionId, byteCodeObjectDataList);
 
 					SmartContractInvocationData scData = new SmartContractInvocationData(smartContractDeployData, method, params, null, false);
+					if(scData.getUsedContracts() == null) {
+						scData.setUsedContracts(new ArrayList<ByteBuffer>());
+					}
 			        byte[] smartContractBytes = NodeClientUtils.serializeByThrift(scData);
-			        TransactionFlowData tStruct = new TransactionFlowData(transactionId, sourceByte, smAddress, BigDecimal.ZERO, 
-			        		maxFee.getFee(),smartContractBytes, null);
+			        
+			        TransactionFlowData tStruct = new TransactionFlowData(transactionId, sourceByte, smAddress, BigDecimal.ZERO, maxFee.getFee(), smartContractBytes, null, null);
+			        //TransactionFlowData tStruct = new TransactionFlowData(transactionId, sourceByte, smAddress, BigDecimal.ZERO, 
+			        //		maxFee.getFee(),smartContractBytes, null);
+			        
 			        
 					
 			        byte[] privateKeyByteArr1;
@@ -141,11 +149,15 @@ public class DoDeploySmartContract implements Runnable {
 			        TransactionFlowResultData result = nodeApiService.smartContractTransactionFlow(smartContractFlowData);
 			        LOGGER.info(result.getMessage());
 
-				transport.close();
+				
 				LOGGER.info("thread  ended");
 			}
 		} catch (Throwable e) {
 			LOGGER.error("erreur in sending ", e);
+		} finally {
+			if (transport.isOpen()) {
+				transport.close();
+			}
 		}
 	}
 	

@@ -1,36 +1,167 @@
 server:
   port: 8383
   address: 127.0.0.1
-  sessionTimeout: 30
+  sessionTimeout: 1
   contextPath: /
 
+general:
+   # mode : 1=normal transactions, 2=execute smart contract, 3=deploy smartcontract
+   mode: 3
 
-
+# Normal Load test, definie as many wallet as needed, transaction will run in //
 nodes-wallets-definition:
-  nb-trx-thread: 10
-  time-before-resync-trx-id: 2000
-  nb-trx-resync-trx-id: 500
-  increment-factor: 13
+  nb-trx-thread: 100000
+  increment-factor: 1
   nodes:
-    - address: 10.0.0.1
+    - address: sirius
       port: 9090
-      from-public-key: 
+      from-public-key: 77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A
       from-private-key: 
-      to-public-key: 
-      time-trx-wait-ms: 0
-    - address: 10.0.0.1
+      to-public-key: CKZ7wL4Pp8t8deUUFD4WzrEb2G3EycGbJdnJbpX9XWFj
+      time-trx-wait-ms: 1
+    - address: sirius
       port: 9090
-      from-public-key: 
+      from-public-key: CKZ7wL4Pp8t8deUUFD4WzrEb2G3EycGbJdnJbpX9XWFj
       from-private-key: 
-      to-public-key: 
-      time-trx-wait-ms: 0
-    - address: 10.0.0.2
-      port: 9090
-      from-public-key: 
-      from-private-key: 
-      to-public-key: 
-      time-trx-wait-ms: 0
+      to-public-key: 77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A
+      time-trx-wait-ms: 1
+#     - address: sirius
+#       port: 9090
+#       from-public-key: 2PFP76SsDTir5g9LNhCiiVbbuhAfUm49ZwWFnYEPdhrZ
+#       from-private-key: 
+#       to-public-key: 77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A
+#       time-trx-wait-ms: 1000
+#     - address: sirius
+#       port: 9090
+#       from-public-key: 3JcAijsAJnBPz5DoMapCfy33rqdA8jo99MLFgpC1ySmZ
+#       from-private-key: 
+#       to-public-key: CKZ7wL4Pp8t8deUUFD4WzrEb2G3EycGbJdnJbpX9XWFj
+#       time-trx-wait-ms: 0
+#     - address: timo
+#       port: 9090
+#       from-public-key: 2D3Y2we3skKvYeiCw3mRoJEmLXG1qCkC46gGxnFyHZbu
+#       from-private-key: 
+#       to-public-key: 77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A
+#       time-trx-wait-ms: 0
+#     - address: timo
+#       port: 9090
+#       from-public-key: 2m13yLpHwfwJNPqjsJtdD2TZuGdMJD1TiaHgdRQWhS55
+#       from-private-key: 
+#       to-public-key: 77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A
+#       time-trx-wait-ms: 0 
+#     - address: timo
+#       port: 9090
+#       from-public-key: 9SDMcDuy4BMZUj6s4muF6qY53pyS1tFFMQiKMCtiNPZe
+#       from-private-key: 
+#       to-public-key: 77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A
+#       time-trx-wait-ms: 0 
+#     - address: timo
+#       port: 9090
+#       from-public-key: HkvprsNCdpeK2cmnJ1tzpnro7P83bxPeRtbXeBcy3BBn
+#       from-private-key: 
+#       to-public-key: 77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A
+#       time-trx-wait-ms: 0  
+#     - address: timo
+#       port: 9090
+#       from-public-key: 95T1nZhvrugpPy9APVLhtJH8KiVDsS6HMbrjD4Dh69uX
+#       from-private-key: 
+#       to-public-key: 77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A
+#       time-trx-wait-ms: 0 
+#     - address: timo
+#       port: 9090
+#       from-public-key: 3yQJmaFYyLkuPsMhGGnNedKMLynJo1qNTdqjf1Bqa23W
+#       from-private-key: 
+#       to-public-key: 77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A
+#       time-trx-wait-ms: 0
+ 
 
+#  SPAM WITH EMPY WALLET
+#     - address: sirius
+#       port: 9090
+#       from-public-key: JCPJ8D2Wv3kcTkTtqdRL3WxDa6bjLn6vavZFmhkhnLvN
+#       from-private-key: 
+#       to-public-key: 77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A
+#       time-trx-wait-ms: 0  
+   
+
+# SMART CONTRACTS
+#       sm-address: 5LKBpWvcDXYi4QK9xpx9Mraibj6hqgoai9R6m2Hn1qV3
+#       from-public: Eyh6ZBiM9D9yyLDwFG7nqAwgm8fFfJn7NauZ6bQxsufn
+#       from-private:  
+smart-contract:
+   deploy:
+      from-public: 3JcAijsAJnBPz5DoMapCfy33rqdA8jo99MLFgpC1ySmZ
+      from-private: 
+      source-file: /srv/credits/sm/doit.java
+      node-address: sirius
+      node-port: 9090
+   executors:
+      - sm-address: 5Gwz3XibEYDLEagzubGEv85AqDK2186tAUX4TeZNTwDy
+        from-public: 3JcAijsAJnBPz5DoMapCfy33rqdA8jo99MLFgpC1ySmZ
+        from-private: 
+     
+        run-locally: false
+        node-address: sirius   
+        node-port: 9090
+        nb-execution: 500
+        time-wait-ms: 0
+        method: addCounter
+      # AVAILABLE PARAMS TYPE :  STRING, INTEGER, DOUBLE, BOOLEAN, FLOAT (DO NOT WORK), LONG
+#       params:
+#          - value: true
+#            type: BOOLEAN
+#          - value: 1
+#            type: INTEGER
+#          - value: 5
+#            type: LONG            
+#          - value: 1234.021
+#            type: FLOAT    
+#          - value: -4521.23
+#            type: DOUBLE                                       
+#          - value: HNDqfMNmu7HTL5DfsDA8oxZEzczbJQ6UgzDA4z7JMotp
+#            type: STRING      
+#          - value: Les sanglots longs  Des violons  De l automne  Blessent mon coeur  D une langueur  Monotone.    Tout suffocant  Et blême, quand  Sonne l heure,  Je me souviens  Des jours anciens  Et je pleure  Et je m en vais  Au vent mauvais  Qui m emporte  Deçà, delà,  Pareil à la  Feuille morte.  
+#            type: STRING
+
+      - sm-address: 5Gwz3XibEYDLEagzubGEv85AqDK2186tAUX4TeZNTwDy
+        from-public: 77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A
+        from-private: 
+        run-locally: false
+        node-address: sirius   
+        node-port: 9090
+        nb-execution: 500
+        time-wait-ms: 0
+        method: addCounter
+#       params:
+#          - value: true
+#            type: BOOLEAN  
+
+      - sm-address: 5Gwz3XibEYDLEagzubGEv85AqDK2186tAUX4TeZNTwDy
+        from-public: CKZ7wL4Pp8t8deUUFD4WzrEb2G3EycGbJdnJbpX9XWFj
+        from-private: 
+        run-locally: false
+        node-address: sirius   
+        node-port: 9090
+        nb-execution: 500
+        time-wait-ms: 0
+        method: addCounter
+#       params:
+#          - value: true
+#            type: BOOLEAN     
+
+      - sm-address: 5Gwz3XibEYDLEagzubGEv85AqDK2186tAUX4TeZNTwDy
+        from-public: 3JcAijsAJnBPz5DoMapCfy33rqdA8jo99MLFgpC1ySmZ
+        from-private: 
+        run-locally: false
+        node-address: sirius   
+        node-port: 9090
+        nb-execution: 500
+        time-wait-ms: 0
+        method: addCounter
+#       params:
+#          - value: true
+#            type: BOOLEAN     
+      
 debug: false
 trace: false
 logging.file: logs/test-credits.log

@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "smart-contract")
 public class SmartContractProperties {
 	private Deploy deploy;
-	private Execute execute;
+	private List<Execute> executors;
 
 	public Deploy getDeploy() {
 		return deploy;
@@ -20,18 +20,24 @@ public class SmartContractProperties {
 		this.deploy = deploy;
 	}
 
-	public Execute getExecute() {
-		return execute;
+
+
+	public List<Execute> getExecutors() {
+		return executors;
 	}
 
-	public void setExecute(Execute execute) {
-		this.execute = execute;
+	public void setExecutors(List<Execute> executors) {
+		this.executors = executors;
 	}
+
+
 
 	public static class Deploy {
 		private String fromPublic;
 		private String fromPrivate;
 		private String sourceFile;
+		private String nodeAddress;
+		private Integer nodePort;
 
 		public String getFromPublic() {
 			return fromPublic;
@@ -55,6 +61,22 @@ public class SmartContractProperties {
 
 		public void setFromPrivate(String fromPrivate) {
 			this.fromPrivate = fromPrivate;
+		}
+
+		public String getNodeAddress() {
+			return nodeAddress;
+		}
+
+		public void setNodeAddress(String nodeAddress) {
+			this.nodeAddress = nodeAddress;
+		}
+
+		public Integer getNodePort() {
+			return nodePort;
+		}
+
+		public void setNodePort(Integer nodePort) {
+			this.nodePort = nodePort;
 		}
 
 	}

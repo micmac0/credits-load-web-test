@@ -62,7 +62,7 @@ public class WalletsRest {
 					BalanceRest balanceRest = new BalanceRest();
 					WalletBalanceGetResult balanceGet = client.WalletBalanceGet(ByteBuffer.wrap(sourceByte));
 					balanceRest.setPublicKey(source);
-					balanceRest.setAmount(NodePojoConverter.amountToBigDecimal(balanceGet.getBalance()));
+					balanceRest.setAmount(GeneralConverter.amountToBigDecimal(balanceGet.getBalance()));
 					balancesList.add(balanceRest);
 				}
 			}

@@ -1,5 +1,6 @@
 package org.credits.load.loadtest.services;
 
+import org.credits.load.loadtest.DoSendCsThread;
 import org.credits.load.loadtest.DoSendSmartContractThread;
 import org.credits.load.loadtest.util.NodesProperties;
 import org.credits.load.loadtest.util.SmartContractProperties;
@@ -30,11 +31,20 @@ public class CallSmartContract {
 
 			public void run() {
 				try {
+					for (int counter = 0; counter < smartContractProperties.getExecutors().size(); counter++) {
+						DoSendSmartContractThread smartContractThreadCall = new DoSendSmartContractThread();
+						smartContractThreadCall.setCallNumber(counter);
+						smartContractThreadCall.setSmartContractProperties(smartContractProperties);
 
-					DoSendSmartContractThread smartContractThreadCall = new DoSendSmartContractThread();
-					smartContractThreadCall.setSmartContractProperties(smartContractProperties);
-					taskExecutor.execute(smartContractThreadCall);
+						taskExecutor.execute(smartContractThreadCall);
 
+					}
+//					for (int counter = 0; counter < 3; counter++) {
+//						DoSendSmartContractThread smartContractThreadCall = new DoSendSmartContractThread();
+//						smartContractThreadCall.setSmartContractProperties(smartContractProperties);
+//						smartContractThreadCall.setCallNumber(counter);
+//						taskExecutor.execute(smartContractThreadCall);
+//					}
 				} catch (Exception e) {
 					LOGGER.error("error", e);
 				}

@@ -1,5 +1,6 @@
 package org.credits.load.loadtest;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
@@ -7,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TSocket;
@@ -16,7 +18,10 @@ import org.credits.load.loadtest.util.NodesProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Component;
 
 import com.credits.client.node.crypto.Ed25519;
@@ -27,14 +32,16 @@ import com.credits.client.node.service.NodeApiServiceImpl;
 import com.credits.client.node.thrift.generated.API;
 import com.credits.client.node.thrift.generated.API.Client;
 import com.credits.client.node.thrift.generated.API.Client.Factory;
-import com.credits.client.node.thrift.generated.Amount;
+
 import com.credits.client.node.thrift.generated.AmountCommission;
 import com.credits.client.node.thrift.generated.Transaction;
 import com.credits.client.node.thrift.generated.TransactionFlowResult;
 import com.credits.client.node.thrift.generated.TransactionType;
+import com.credits.client.node.thrift.generated.WalletBalanceGetResult;
 import com.credits.client.node.thrift.generated.WalletTransactionsCountGetResult;
 import com.credits.client.node.util.NodePojoConverter;
 import com.credits.client.node.util.SignUtils;
+import com.credits.general.thrift.generated.Amount;
 import com.credits.general.util.GeneralConverter;
 
 
@@ -51,6 +58,9 @@ public class DoSendCsThread implements Runnable {
 
 	@Autowired
 	NodesProperties nodesProperties;
+	
+	@Autowired
+	SendTrxAsync sendTrxAsync;
 
 	@Override
 	public void run() {
@@ -70,11 +80,22 @@ public class DoSendCsThread implements Runnable {
 		String pk = nodesProperties.getNodes().get(nodeConfigNumber).getFromPrivateKey();
 		byte[] sourceByte = GeneralConverter.decodeFromBASE58(source);
 		byte[] targetByte = GeneralConverter.decodeFromBASE58(target);
+		String commentsStr = nodesProperties.getNodes().get(nodeConfigNumber).getComments();
 		Integer incrementFactor = nodesProperties.getIncrementFactor();
+		byte[] commentsByt = null;
+		if(!StringUtils.isBlank(commentsStr)) {
+			try {
+				commentsByt = commentsStr.getBytes("UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		BigDecimal amountDecimal = new BigDecimal(nodesProperties.getNodes().get(nodeConfigNumber).getAmount());
 
 		Long previousId = -1L;
 
-		Fee maxFee = new Fee(new BigDecimal("1"));
+		Fee maxFee = new Fee(new BigDecimal("10"));
 
 		try {
 			Integer waitTime = nodesProperties.getNodes().get(nodeConfigNumber).getTimeTrxWaitMs();
@@ -84,11 +105,14 @@ public class DoSendCsThread implements Runnable {
 			TProtocol protocol = new TBinaryProtocol(transport);
 			API.Client client = clientFactory.getClient(protocol);
 			transport.open();
-			LOGGER.info("thread {} sending configuration : {} trx will be submited per round with {}ms delay between trx,  {}ms between each round", nodeConfigNumber, nbTrxResyncTrxId,
-					nodesProperties.getNodes().get(nodeConfigNumber).getTimeTrxWaitMs(),
-					timeBeforeResyncTrxId);
+
 			
 			if (transport.isOpen()) {
+//				byte[] custWallet = GeneralConverter.decodeFromBASE58("AhkX6vbhBjRdK8sfyRRUKN1CDyR7eFnkNQh2ePbVpB12");
+//				WalletBalanceGetResult resultBalance = client.WalletBalanceGet(ByteBuffer.wrap(custWallet));
+//				System.out.println(NodePojoConverter.amountToBigDecimal(resultBalance.balance));
+
+
 				WalletTransactionsCountGetResult transId = client.WalletTransactionsCountGet(ByteBuffer.wrap(sourceByte));
 				if (transId != null)
 					id = transId.lastTransactionInnerId + incrementFactor;
@@ -96,29 +120,25 @@ public class DoSendCsThread implements Runnable {
 					id = 0L;
 				if (previousId == -1L) {
 					LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
-
+					
 				} else {
 					LOGGER.info("thread {} have last id : {}", nodeConfigNumber, id);
-				}						
+				}		
+				id = id +1;
 				NodeApiService nodeApiService = NodeApiServiceImpl.getInstance(
 						nodesProperties.getNodes().get(nodeConfigNumber).getAddress(),
 						nodesProperties.getNodes().get(nodeConfigNumber).getPort());
 
 					for (int j = 0; j < nbSend; j++) {
 
-						BigDecimal amountDecimal = new BigDecimal("0.0001");
-						Amount amount = NodePojoConverter.bigDecimalToAmount(amountDecimal);
-						Amount balance = NodePojoConverter.bigDecimalToAmount(new BigDecimal("1"));
 
-
-
-
-
+						 Amount amount = GeneralConverter.bigDecimalToAmount(amountDecimal);
+						 Amount balance = GeneralConverter.bigDecimalToAmount(new BigDecimal("1"));
 
 
 
 						TransactionFlowData tStruct = new TransactionFlowData(id, sourceByte, targetByte, amountDecimal,
-								maxFee.getFee(), null, null);
+								maxFee.getFee(), null, commentsByt, null);
 
 						byte[] privateKeyByteArr1;
 						privateKeyByteArr1 = GeneralConverter.decodeFromBASE58(pk);
@@ -128,15 +148,14 @@ public class DoSendCsThread implements Runnable {
 
 						// LOGGER.info(Converter.bytesToHex(tStruct.getBytes()));
 
+						sendTrxAsync.asyncDoSendTrx(nodeApiService, tStruct);
 						
-						TransactionFlowResultData res2 = nodeApiService.transactionFlow(tStruct);
-						
-						//TransactionFlowResult res2 = client.TransactionFlow(transaction);
-						 LOGGER.info(res2.getMessage());
+
+
 
 						Thread.currentThread().sleep(waitTime);
 
-						id += incrementFactor;
+						id ++;
 					}
 
 
@@ -148,6 +167,10 @@ public class DoSendCsThread implements Runnable {
 			LOGGER.error("erreur in sending thread number {}", nodeConfigNumber, e);
 		}
 	}
+	
+
+
+
 
 	public Integer getNodeConfigNumber() {
 		return nodeConfigNumber;

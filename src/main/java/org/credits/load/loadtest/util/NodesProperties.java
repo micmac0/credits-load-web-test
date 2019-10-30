@@ -45,6 +45,8 @@ public class NodesProperties {
 		private String fromPrivateKey;
 		private String toPublicKey;
 		private Integer timeTrxWaitMs;
+		private String amount;
+		private String comments;
 
 		public String getAddress() {
 			return address;
@@ -92,6 +94,22 @@ public class NodesProperties {
 
 		public void setTimeTrxWaitMs(Integer timeTrxWaitMs) {
 			this.timeTrxWaitMs = timeTrxWaitMs;
+		}
+
+		public String getComments() {
+			return comments;
+		}
+
+		public void setComments(String comments) {
+			this.comments = comments;
+		}
+
+		public String getAmount() {
+			return amount;
+		}
+
+		public void setAmount(String amount) {
+			this.amount = amount;
 		}
 
 	}

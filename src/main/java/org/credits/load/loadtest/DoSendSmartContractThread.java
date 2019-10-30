@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -48,6 +49,8 @@ public class DoSendSmartContractThread implements Runnable {
 
 	SmartContractProperties smartContractProperties;
 
+	private int counter;
+
 	@Override
 	public void run() {
 
@@ -62,20 +65,29 @@ public class DoSendSmartContractThread implements Runnable {
 		Integer maxCount = 0;
 		Long id = 0L;
 
-		String source = smartContractProperties.getExecute().getFromPublic();
-		String target = smartContractProperties.getExecute().getSmAddress();
-		String pk = smartContractProperties.getExecute().getFromPrivate();
+		String source = smartContractProperties.getExecutors().get(counter).getFromPublic();
+		String target = smartContractProperties.getExecutors().get(counter).getSmAddress();
+		String pk = smartContractProperties.getExecutors().get(counter).getFromPrivate();
+		
+
+//		if(this.counter==1) {
+//			source="77AKUt793QSHDsBw3dajJmFiWNsPFs8nQeKpz4hZsS5A";
+//			pk = "4FMsncuC3EeLLi7J5BtnrUJX2WRUTk5yfprSKWhF3hPcZUDRpDJhtdaXFk4ZxrvUiYkWwCYCVHRnp1nQRYoHR2zx";
+//		} else if(this.counter==2) {
+//			source="CKZ7wL4Pp8t8deUUFD4WzrEb2G3EycGbJdnJbpX9XWFj";
+//			pk = "3jmdWb12G5CrwQxH4KesFujUyz7ZLz5KFAegK4ZxUdMThr65ugWkrJ8K8w4PhtYALnV1U4F4rhpH6H9cZh25biPj";
+//		}
 		
 		byte[] sourceByte = GeneralConverter.decodeFromBASE58(source);
 		byte[] targetByte = GeneralConverter.decodeFromBASE58(target);
 
 		Date now = new Date();
 
-		Fee maxFee = new Fee(new BigDecimal("1"));
+		Fee maxFee = new Fee(new BigDecimal("10"));
 
 		try {
-			TTransport transport = new TSocket(smartContractProperties.getExecute().getNodeAddress(),
-					smartContractProperties.getExecute().getNodePort());
+			TTransport transport = new TSocket(smartContractProperties.getExecutors().get(counter).getNodeAddress(),
+					smartContractProperties.getExecutors().get(counter).getNodePort());
 			Factory clientFactory = new Client.Factory();
 			TProtocol protocol = new TBinaryProtocol(transport);
 			API.Client client = clientFactory.getClient(protocol);
@@ -87,23 +99,21 @@ public class DoSendSmartContractThread implements Runnable {
 			else
 				id = 0L;
 			if (transport.isOpen()) {
-				for (int i = 0; i < smartContractProperties.getExecute().getNbExecution(); i++) {
-					NodeApiService nodeApiService = NodeApiServiceImpl.getInstance(
-							smartContractProperties.getExecute().getNodeAddress(),
-							smartContractProperties.getExecute().getNodePort());
+				NodeApiService nodeApiService = NodeApiServiceImpl.getInstance(
+						smartContractProperties.getExecutors().get(counter).getNodeAddress(),
+						smartContractProperties.getExecutors().get(counter).getNodePort());
+				for (int i = 0; i < smartContractProperties.getExecutors().get(counter).getNbExecution(); i++) {
+					try {
+					
 					SmartContractData smartContractData = nodeApiService.getSmartContract(target);
 					String code = smartContractData.getSmartContractDeployData().getSourceCode();
 
 					List<Variant> params = new ArrayList<Variant>();
-					smartContractProperties.getExecute().getParams().forEach( p -> {
+					smartContractProperties.getExecutors().get(counter).getParams().forEach( p -> {
 						Variant param = new Variant();
 						if("STRING".equals(p.getType())) {
-							String hachString ="";
-							for (int j=0; j<500;j++) {
-								hachString+=p.getValue()+"\n";
-							}
-							param.setFieldValue(Variant._Fields.V_STRING, hachString);
-//							param.setFieldValue(Variant._Fields.V_STRING, p.getValue());
+
+							param.setFieldValue(Variant._Fields.V_STRING, p.getValue());
 						} else if("INTEGER".equals(p.getType())) {
 							param.setFieldValue(Variant._Fields.V_INT, new Integer(p.getValue()));
 						} else if("DOUBLE".equals(p.getType())) {
@@ -117,18 +127,22 @@ public class DoSendSmartContractThread implements Runnable {
 						}
 						params.add(param);
 					});
-					String methodName = smartContractProperties.getExecute().getMethod();
+					String methodName = smartContractProperties.getExecutors().get(counter).getMethod();
 
 					smartContractData.setGetterMethod(false);
 					smartContractData.setMethod(methodName);
 					smartContractData.setParams(params);
 
 					SmartContractInvocationData smartContractInvocData = new SmartContractInvocationData(
-							smartContractData.getSmartContractDeployData(), methodName, params, null, smartContractProperties.getExecute().getRunLocally());
+							smartContractData.getSmartContractDeployData(), methodName, params, null, smartContractProperties.getExecutors().get(counter).getRunLocally());
+					
+					if(smartContractInvocData.getUsedContracts() == null) {
+						smartContractInvocData.setUsedContracts(new ArrayList<ByteBuffer>());
+					}
 					byte[] smartContractBytes = NodeClientUtils.serializeByThrift(smartContractInvocData);
 
 					TransactionFlowData tStruct = new TransactionFlowData(id, sourceByte, targetByte, BigDecimal.ZERO,
-							maxFee.getFee(), smartContractBytes, null);
+							maxFee.getFee(), smartContractBytes, null, null);
 
 					byte[] privateKeyByteArr1;
 					privateKeyByteArr1 = GeneralConverter.decodeFromBASE58(pk);
@@ -147,11 +161,17 @@ public class DoSendSmartContractThread implements Runnable {
 							.smartContractTransactionFlow(smartContractDataTrxFlow);
 
 					Optional<Variant> var = result.getContractResult();
+					
 					//String strVar = var.get().getV_string();
 					//LOGGER.info(strVar);
 					if(var.isPresent())
-						LOGGER.info(var.get().toString());
+						LOGGER.info("Thread : "+Thread.currentThread().getId()+" : "+result.getMessage()+"\nResult from smartcontract : "+var.get().toString());
+					
+					}catch(Exception e) {
+						LOGGER.error("erreur in sending ", e);
+					}
 					id++;
+					
 					// nodeApiService.transactionFlow(smartContractDataTrxFlow);
 				}
 				transport.close();
@@ -164,6 +184,11 @@ public class DoSendSmartContractThread implements Runnable {
 
 	public void setSmartContractProperties(SmartContractProperties smartContractProperties) {
 		this.smartContractProperties = smartContractProperties;
+	}
+
+	public void setCallNumber(int counter) {
+		this.counter = counter;
+		
 	}
 
 }

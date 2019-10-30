@@ -13,6 +13,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.credits.general.util.GeneralConverter;
+
 @SpringBootApplication
 @RestController
 @EnableScheduling
@@ -43,6 +45,13 @@ public class TestCredits implements CommandLineRunner {
 
 		// TODO Auto-generated method stub
 		LOGGER.info("Hey start APP");
+		
+		String hexa = "46A6F86B8D7CDB9ECF02D50DE41931CEF73076EA4D58AE901A5D62A8FA079AED";
+		byte[] bytes = hexStringToByteArray(hexa);
+
+		
+
+		
 
 		if(generalProperties.getMode() == 1) {
 			sendCreditsService.executeAsynchronously();
@@ -55,5 +64,13 @@ public class TestCredits implements CommandLineRunner {
 		
 
 	}
-
+	public static byte[] hexStringToByteArray(String s) {
+	    int len = s.length();
+	    byte[] data = new byte[len / 2];
+	    for (int i = 0; i < len; i += 2) {
+	        data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+	                             + Character.digit(s.charAt(i+1), 16));
+	    }
+	    return data;
+	}
 }

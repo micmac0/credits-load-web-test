@@ -11,11 +11,17 @@
 buildscript {
 	repositories {
 		mavenLocal()
-		mavenCentral()
-		
+		maven {
+			url artf_Url + '/sb-virtual'
+			credentials {
+				username = artf_user
+				password = artf_password
+			}
+		}
 	}
 	dependencies {
 		classpath("org.springframework.boot:spring-boot-gradle-plugin:2.0.1.RELEASE")
+		classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.4.0"	// plugin: "com.jfrog.artifactory" pour artifactory
 	}
 }
 
@@ -26,6 +32,7 @@ apply plugin: "distribution"
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'maven-publish'
+apply plugin: "com.jfrog.artifactory"
 
 configurations {
 	all {
@@ -46,12 +53,18 @@ bootJar {
 
 repositories {
 	mavenLocal()
-	jcenter()
-	
+	maven { 
+		url artf_Url + '/sb-virtual'
+		credentials {
+			username = artf_user
+			password = artf_password
+		}
+	}
+	//jcenter()
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 11
+targetCompatibility = 11
 
 ext {
 
@@ -63,7 +76,7 @@ dependencies {
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 
 	
-	compile group: 'com.credits', name: 'wallet-desktop', version: '0.0.1'
+	compile group: 'com.credits', name: 'wallet-desktop', version: '0.0.5'
 
 	// This dependency is found on compile classpath of this component and consumers.
 	compile group: 'com.google.guava', name: 'guava', version: '23.0'
@@ -74,6 +87,22 @@ dependencies {
 	compile group: 'joda-time', name: 'joda-time', version: '2.9.9'
 	compile group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.3'
 
+}
+
+artifactory {
+	contextUrl = artf_Url			//The base Artifactory URL if not overridden by the publisher/resolver
+	resolve {
+		contextUrl = artf_Url		// The base Artifactory URL for the resolver
+		repository {
+			repoKey = 'sb-libs'					// The Artifactory repository key to publish to
+			username = artf_user			// défini dans "gradle.properties" ou via -Partifactory_user=...
+			password = artf_password		// défini dans "gradle.properties" ou via -Partifactory_password=...
+			maven = true						// Resolve Maven-style artifacts and descriptors (true by default)
+		}
+	}
+	// Redefine basic properties of the build info object
+	clientConfig.setIncludeEnvVars(true)
+	clientConfig.timeout = 600 // Artifactory connection timeout (in seconds). The default timeout is 300 seconds.
 }
 
 bootRun {
